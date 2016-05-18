@@ -67,7 +67,12 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		r.RequestURI = ""
 		r.Host = base.Host
 
-		if cfg.Token != "" && r.URL.Query().Get("token") != cfg.Token {
+		suppliedToken := r.URL.Query().Get("token")
+		if authCookie, err := r.Cookie("grafana-proxy-auth"); err == nil {
+			suppliedToken = authCookie.Value
+		}
+
+		if cfg.Token != "" && suppliedToken != cfg.Token {
 			http.Error(res, "Please add the `?token=xyz` parameter with correct token", http.StatusForbidden)
 			return nil
 		}
@@ -84,6 +89,15 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 			for _, v1 := range v {
 				res.Header().Add(k, v1)
 			}
+		}
+
+		if r.URL.Query().Get("token") != "" {
+			http.SetCookie(res, &http.Cookie{
+				Name:   "grafana-proxy-auth",
+				Value:  r.URL.Query().Get("token"),
+				MaxAge: 31536000, // 1 Year
+				Path:   "/",
+			})
 		}
 
 		if resp.StatusCode == 401 {
