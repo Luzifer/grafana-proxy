@@ -31,7 +31,7 @@ Usage of ./grafana-proxy:
 Starting with version `v0.3.0` the proxy also supports being started using docker. To use it you can just use this command line:
 
 ```bash
-# docker run --rm -ti -e USER=[...] -e PASS=[...] -e BASE_URL=[...] -p 3000:3000 quay.io/luzifer/grafana-proxy
+# docker run --rm -ti -e USER=[...] -e PASS=[...] -e BASEURL=[...] -p 3000:3000 quay.io/luzifer/grafana-proxy
 2016/05/18 11:45:35 GET /dashboard/db/host-dashboard 200 7971
 2016/05/18 11:45:35 GET /api/dashboards/db/host-dashboard? 200 18202
 ```
@@ -41,7 +41,7 @@ Starting with version `v0.3.0` the proxy also supports being started using docke
 If you want to run the `grafana-proxy` on a public accessible host but do not want everyone to be able to see your dashboard you can add some pseudo security using a shared token:
 
 ```bash
-# docker run --rm -ti -e USER=myuser -e PASS=mypass -e BASE_URL=http://mygrafana.com -e TOKEN=mysharedsecret -p 3000:3000 quay.io/luzifer/grafana-proxy
+# docker run --rm -ti -e USER=myuser -e PASS=mypass -e BASEURL=http://mygrafana.com -e TOKEN=mysharedsecret -p 3000:3000 quay.io/luzifer/grafana-proxy
 2016/05/18 11:45:35 GET /dashboard/db/host-dashboard 200 7971
 2016/05/18 11:45:35 GET /api/dashboards/db/host-dashboard? 200 18202
 ```
