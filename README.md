@@ -15,11 +15,35 @@ This project emerged from the wish to display my grafana dashboard on a screen a
 # ./grafana-proxy
 Usage of ./grafana-proxy:
       --baseurl="": BaseURL (excluding last /) of Grafana
+      --listen="127.0.0.1:8081": IP/Port to listen on
   -p, --pass="": Password for Grafana login
-  -u, --user="": Username for Grafana login
+      --token="": (optional) require a ?token=xyz parameter to show the dashboard
+  -u, --user="luzifer": Username for Grafana login
 
 # ./grafana-proxy -u [...] -p [...] --baseurl=https://grafana
 2015/06/29 23:45:19 GET /? 200 2421
 2015/06/29 23:45:19 GET /css/grafana.dark.min.5aa0b879.css? 200 185096
 2015/06/29 23:45:19 GET /app/app.6e379bdb.js? 200 874636
 ```
+
+### Starting from docker
+
+Starting with version `v0.3.0` the proxy also supports being started using docker. To use it you can just use this command line:
+
+```bash
+# docker run --rm -ti -e USER=[...] -e PASS=[...] -e BASE_URL=[...] -p 3000:3000 quay.io/luzifer/grafana-proxy
+2016/05/18 11:45:35 GET /dashboard/db/host-dashboard 200 7971
+2016/05/18 11:45:35 GET /api/dashboards/db/host-dashboard? 200 18202
+```
+
+### Using the `token` parameter
+
+If you want to run the `grafana-proxy` on a public accessible host but do not want everyone to be able to see your dashboard you can add some pseudo security using a shared token:
+
+```bash
+# docker run --rm -ti -e USER=myuser -e PASS=mypass -e BASE_URL=http://mygrafana.com -e TOKEN=mysharedsecret -p 3000:3000 quay.io/luzifer/grafana-proxy
+2016/05/18 11:45:35 GET /dashboard/db/host-dashboard 200 7971
+2016/05/18 11:45:35 GET /api/dashboards/db/host-dashboard? 200 18202
+```
+
+Your users now need to use `http://<ip>:3000/mydashboard?token=mysharedsecret` to access the dashboard.
