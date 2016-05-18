@@ -10,15 +10,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/Luzifer/rconfig"
 	"github.com/cenkalti/backoff"
-	"github.com/spf13/pflag"
 )
 
 var (
 	cfg = struct {
-		User    string
-		Pass    string
-		BaseURL string
+		User    string `flag:"user,u" default:"" description:"Username for Grafana login"`
+		Pass    string `flag:"pass,p" default:"" description:"Password for Grafana login"`
+		BaseURL string `flag:"baseurl" default:"" description:"BaseURL (excluding last /) of Grafana"`
+		Listen  string `flag:"listen" default:"127.0.0.1:8081" description:"IP/Port to listen on"`
+		Token   string `flag:"token" default:"" description:"(optional) require a ?token=xyz parameter to show the dashboard"`
 	}{}
 	cookieJar *cookiejar.Jar
 	client    *http.Client
@@ -26,13 +28,10 @@ var (
 )
 
 func init() {
-	pflag.StringVarP(&cfg.User, "user", "u", "", "Username for Grafana login")
-	pflag.StringVarP(&cfg.Pass, "pass", "p", "", "Password for Grafana login")
-	pflag.StringVar(&cfg.BaseURL, "baseurl", "", "BaseURL (excluding last /) of Grafana")
-	pflag.Parse()
+	rconfig.Parse(&cfg)
 
 	if cfg.User == "" || cfg.Pass == "" || cfg.BaseURL == "" {
-		pflag.Usage()
+		rconfig.Usage()
 		os.Exit(1)
 	}
 
@@ -67,6 +66,11 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		r.URL.Scheme = base.Scheme
 		r.RequestURI = ""
 		r.Host = base.Host
+
+		if cfg.Token != "" && r.URL.Query().Get("token") != cfg.Token {
+			http.Error(res, "Please add the `?token=xyz` parameter with correct token", http.StatusForbidden)
+			return nil
+		}
 
 		resp, err := client.Do(r)
 		if err != nil {
@@ -103,8 +107,8 @@ func main() {
 	var err error
 	base, err = url.Parse(cfg.BaseURL)
 	if err != nil {
-		fmt.Printf("Please provide a parsable baseurl: %s\n", err)
+		fmt.Printf("Please provide a parseable baseurl: %s\n", err)
 	}
 
-	log.Fatal(http.ListenAndServe("127.0.0.1:8081", proxy{}))
+	log.Fatal(http.ListenAndServe(cfg.Listen, proxy{}))
 }
