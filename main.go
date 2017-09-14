@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/Luzifer/rconfig"
 	"github.com/cenkalti/backoff"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -28,7 +29,12 @@ var (
 )
 
 func init() {
-	rconfig.Parse(&cfg)
+	log.SetFormatter(&log.JSONFormatter{})
+	if err := rconfig.Parse(&cfg); err != nil {
+		log.Fatalf("Unable to parse commandline options: %s", err)
+	}
+
+	log.SetLevel(log.InfoLevel)
 
 	if cfg.User == "" || cfg.Pass == "" || cfg.BaseURL == "" {
 		rconfig.Usage()
@@ -48,7 +54,9 @@ func loadLogin() {
 			"password": {cfg.Pass},
 		})
 		if err != nil {
-			log.Printf("[ERR][loadLogin] %s", err)
+			log.WithError(err).WithFields(log.Fields{
+				"user": cfg.User,
+			}).Printf("Login failed")
 			return err
 		}
 		defer resp.Body.Close()
@@ -59,6 +67,15 @@ func loadLogin() {
 type proxy struct{}
 
 func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
+	requestLog := log.WithFields(log.Fields{
+		"http_user_agent": r.Header.Get("User-Agent"),
+		"host":            r.Host,
+		"remote_addr":     r.Header.Get("X-Forwarded-For"),
+		"request":         r.URL.Path,
+		"request_full":    r.URL.String(),
+		"request_method":  r.Method,
+	})
+
 	bo := backoff.NewExponentialBackOff()
 	bo.MaxElapsedTime = 5 * time.Second
 	if err := backoff.Retry(func() error {
@@ -73,12 +90,14 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		}
 
 		if cfg.Token != "" && suppliedToken != cfg.Token {
+			requestLog.Error("Token parameter is wrong")
 			http.Error(res, "Please add the `?token=xyz` parameter with correct token", http.StatusForbidden)
 			return nil
 		}
 
 		resp, err := client.Do(r)
 		if err != nil {
+			requestLog.WithError(err).Error("Request failed")
 			return err
 		}
 
@@ -101,6 +120,11 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		}
 
 		if resp.StatusCode == 401 {
+			errmsg, _ := ioutil.ReadAll(resp.Body)
+			requestLog.WithFields(log.Fields{
+				"error":      string(errmsg),
+				"all_header": r.Header,
+			}).Info("Unauthorized, trying to login")
 			loadLogin()
 			return fmt.Errorf("Need to relogin")
 		}
@@ -108,9 +132,15 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		res.WriteHeader(resp.StatusCode)
 		written, _ := io.Copy(res, resp.Body)
 
-		log.Printf("%s %s?%s %d %d\n", r.Method, r.URL.Path, r.URL.RawQuery, resp.StatusCode, written)
+		requestLog.WithFields(log.Fields{
+			"status":     resp.StatusCode,
+			"bytes_sent": written,
+		}).Info("Request completed")
 		return nil
 	}, bo); err != nil {
+		requestLog.WithError(err).WithFields(log.Fields{
+			"status": http.StatusInternalServerError,
+		}).Error("Backend request failed")
 		http.Error(res, fmt.Sprintf("Woot?\n%s", err), http.StatusInternalServerError)
 	}
 }
@@ -121,7 +151,7 @@ func main() {
 	var err error
 	base, err = url.Parse(cfg.BaseURL)
 	if err != nil {
-		fmt.Printf("Please provide a parseable baseurl: %s\n", err)
+		log.WithError(err).WithField("base_url", base).Fatalf("BaseURL is not parsesable")
 	}
 
 	log.Fatal(http.ListenAndServe(cfg.Listen, proxy{}))
