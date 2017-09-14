@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,8 +13,11 @@ import (
 
 	"github.com/Luzifer/rconfig"
 	"github.com/cenkalti/backoff"
+	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
+
+const RequestIDKey = "request_id"
 
 var (
 	cfg = struct {
@@ -56,7 +60,7 @@ func init() {
 	}
 }
 
-func loadLogin() {
+func loadLogin(ctx context.Context) {
 	backoff.Retry(func() error {
 		resp, err := client.PostForm(fmt.Sprintf("%s/login", cfg.BaseURL), url.Values{
 			"user":     {cfg.User},
@@ -64,7 +68,8 @@ func loadLogin() {
 		})
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
-				"user": cfg.User,
+				"user":       cfg.User,
+				"request_id": requestIDFromContext(ctx),
 			}).Error("Login failed")
 			return err
 		}
@@ -76,6 +81,10 @@ func loadLogin() {
 type proxy struct{}
 
 func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
+	requestID := uuid.NewV4().String()
+	bgCtx := context.Background()
+	ctx := context.WithValue(bgCtx, RequestIDKey, requestID)
+
 	requestLog := log.WithFields(log.Fields{
 		"http_user_agent": r.Header.Get("User-Agent"),
 		"host":            r.Host,
@@ -83,6 +92,7 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		"request":         r.URL.Path,
 		"request_full":    r.URL.String(),
 		"request_method":  r.Method,
+		"request_id":      requestIDFromContext(ctx),
 	})
 
 	bo := backoff.NewExponentialBackOff()
@@ -134,7 +144,7 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 				"error":  string(errmsg),
 				"header": r.Header,
 			}).Info("Unauthorized, trying to login")
-			loadLogin()
+			loadLogin(ctx)
 			return fmt.Errorf("Need to relogin")
 		}
 
@@ -154,8 +164,15 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func requestIDFromContext(ctx context.Context) string {
+	if id, ok := ctx.Value(RequestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
 func main() {
-	loadLogin()
+	loadLogin(context.Background())
 
 	var err error
 	base, err = url.Parse(cfg.BaseURL)
