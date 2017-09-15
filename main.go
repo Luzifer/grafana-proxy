@@ -87,7 +87,7 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		res.Header().Del("Content-Type")
 		for k, v := range resp.Header {
 			for _, v1 := range v {
-				res.Header().Add(k, v1)
+				res.Header().Set(k, v1)
 			}
 		}
 
