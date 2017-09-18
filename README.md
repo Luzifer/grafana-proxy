@@ -1,7 +1,6 @@
 # Luzifer / grafana-proxy
 
-[![License: Apache v2.0](https://badge.luzifer.io/v1/badge?color=5d79b5&title=license&text=Apache+v2.0)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Binary Download](https://badge.luzifer.io/v1/badge?title=Download&text=on GoBuilder)](https://gobuilder.me/github.com/Luzifer/grafana-proxy)
+![License](https://badges.fyi/github/license/Luzifer/grafana-proxy)
 
 This project emerged from the wish to display my grafana dashboard on a screen attached to a Raspberry-PI without having to login myself. Also the chromium browser running on that PI is running in incognito mode. (Even if it wasn't the login with stored credentials would required manual interaction.) So I was in need for something to display the dasboards without the snapshot function of grafana (I change that dashboard quite often and also I don't trust that public snapshot service) without having to do anything to interact with that PI.
 
