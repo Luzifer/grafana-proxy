@@ -1,3 +1,9 @@
+# 0.5.0 / 2017-09-22
+
+  * Rewrite of logging logic to use proper log package (thanks @Bonko)
+  * Update dependencies
+  * Fix Apache 2.0 license file
+
 # 0.4.0 / 2017-09-18
 
   * Switch to dep from godeps, update dependencies
