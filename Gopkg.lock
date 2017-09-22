@@ -14,6 +14,18 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
+  version = "v1.0.3"
+
+[[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
@@ -21,9 +33,21 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
   revision = "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix","windows"]
+  revision = "2320a9c15898af1b1b24f99700d5c1e957f9d8cf"
 
 [[projects]]
   branch = "v2"
@@ -40,6 +64,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0bff18dc962814f577311deb1d485113ab36060e479960d581f0f5041f54f1aa"
+  inputs-digest = "a6e00919d4a5c623522e6e5495a3087df477ebcb90fe5434c9472e3459973cff"
   solver-name = "gps-cdcl"
   solver-version = 1
