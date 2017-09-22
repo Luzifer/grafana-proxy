@@ -17,11 +17,12 @@ import (
 
 var (
 	cfg = struct {
-		User    string `flag:"user,u" default:"" env:"USER" description:"Username for Grafana login"`
-		Pass    string `flag:"pass,p" default:"" env:"PASS" description:"Password for Grafana login"`
-		BaseURL string `flag:"baseurl" default:"" env:"BASEURL" description:"BaseURL (excluding last /) of Grafana"`
-		Listen  string `flag:"listen" default:"127.0.0.1:8081" description:"IP/Port to listen on"`
-		Token   string `flag:"token" default:"" env:"TOKEN" description:"(optional) require a ?token=xyz parameter to show the dashboard"`
+		User      string `flag:"user,u" default:"" env:"USER" description:"Username for Grafana login"`
+		Pass      string `flag:"pass,p" default:"" env:"PASS" description:"Password for Grafana login"`
+		BaseURL   string `flag:"baseurl" default:"" env:"BASEURL" description:"BaseURL (excluding last /) of Grafana"`
+		Listen    string `flag:"listen" default:"127.0.0.1:8081" description:"IP/Port to listen on"`
+		Token     string `flag:"token" default:"" env:"TOKEN" description:"(optional) require a ?token=xyz parameter to show the dashboard"`
+		LogFormat string `flag:"log-format" default:"text" env:"LOG_FORMAT" description:"Output format for logs (text/json)"`
 	}{}
 	cookieJar *cookiejar.Jar
 	client    *http.Client
@@ -29,9 +30,17 @@ var (
 )
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
 	if err := rconfig.Parse(&cfg); err != nil {
 		log.Fatalf("Unable to parse commandline options: %s", err)
+	}
+
+	switch cfg.LogFormat {
+	case "text":
+		log.SetFormatter(&log.TextFormatter{})
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{})
+	default:
+		log.Fatalf("Unknown log format: %s", cfg.LogFormat)
 	}
 
 	log.SetLevel(log.InfoLevel)
@@ -56,7 +65,7 @@ func loadLogin() {
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
 				"user": cfg.User,
-			}).Printf("Login failed")
+			}).Error("Login failed")
 			return err
 		}
 		defer resp.Body.Close()
@@ -122,8 +131,8 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		if resp.StatusCode == 401 {
 			errmsg, _ := ioutil.ReadAll(resp.Body)
 			requestLog.WithFields(log.Fields{
-				"error":      string(errmsg),
-				"all_header": r.Header,
+				"error":  string(errmsg),
+				"header": r.Header,
 			}).Info("Unauthorized, trying to login")
 			loadLogin()
 			return fmt.Errorf("Need to relogin")
