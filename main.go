@@ -114,6 +114,9 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 
+		// Do not forward cookies set by the client, use our own cookie jar
+		r.Header.Del("Cookie")
+
 		resp, err := client.Do(r)
 		if err != nil {
 			requestLog.WithError(err).Error("Request failed")
@@ -123,6 +126,7 @@ func (p proxy) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 		defer resp.Body.Close()
 
 		res.Header().Del("Content-Type")
+		res.Header().Del("Set-Cookie") // Client does not need to handle cookies but Grafana passes them
 		for k, v := range resp.Header {
 			for _, v1 := range v {
 				res.Header().Set(k, v1)
