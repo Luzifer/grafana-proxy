@@ -1,3 +1,7 @@
+# 0.6.0 / 2017-09-25
+
+  * Intercept client cookie handling
+
 # 0.5.0 / 2017-09-22
 
   * Rewrite of logging logic to use proper log package (thanks @Bonko)
